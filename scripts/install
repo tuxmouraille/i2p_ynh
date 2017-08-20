@@ -1,0 +1,88 @@
+#!/bin/bash
+
+# Configurable variables
+SYNCHOME="/home/yunohost.app/i2p"
+SYNCUSER=debian-i2p
+I2PPORT1=8887
+I2PPORT2=123
+GUIPORT=7657
+
+# Retrieve arguments
+domain=$1
+path=$2
+user=$3
+
+# Check Debian version
+if [[ $(cat /etc/debian_version) = "7."* ]]
+then
+    echo "You need debian Jessie (8.x) to install i2ps."
+    exit 1
+fi
+
+# Check that admin user is an existing account
+sudo yunohost user list --json | grep -q "\"username\": \"$admin\"" \
+    || (echo "Error: the chosen admin user does not exist" && exit 1)
+
+# Check domain/path availability
+sudo yunohost app checkurl $domain$path -a i2p
+if [[ ! $? -eq 0 ]]; then
+  echo $domain$path is not available. Please choose another url for Syncthing.
+  exit 1
+fi
+
+# Remove trailing "/" for next commands
+path=${path%/}
+
+# Check port availability
+sudo yunohost app checkport $GUIPORT
+if [[ ! $? -eq 0 ]]; then
+  echo Port $GUIPORT for Syncthing UI is not available.
+  exit 1
+fi
+sudo yunohost app checkport $I2PPORT1
+if [[ ! $? -eq 0 ]]; then
+  echo Port $I2PPORT1 is for Syncthing protocol is not available.
+  exit 1
+fi
+sudo yunohost app checkport $I2PPORT2
+if [[ ! $? -eq 0 ]]; then
+  echo Port $I2PPORT2 is for Syncthing protocol is not available.
+  exit 1
+fi
+
+# Open port in firewall
+sudo yunohost firewall allow Both $I2PPORT1 > /dev/null 2>&1
+sudo yunohost firewall allow UDP $I2PPORT2 > /dev/null 2>&1
+
+# Download and install i2p binary
+sudo apt-get install curl
+## Add the release PGP keys:
+curl -s https://geti2p.net/_static/i2p-debian-repo.key.asc | sudo apt-key add -
+## Add the "release" channel to your APT sources:
+echo "deb https://deb.i2p2.de/ jessie main" | sudo tee /etc/apt/sources.list.d/i2p.list
+## Update and install i2p:
+sudo apt-get update -qq
+sudo apt-get install i2p i2p-keyring -y --force-yes
+
+# Install and monitor service
+sudo sed -i '/^\[Service\]$/,/^\[/ s/^Restart=on-failure/Restart=always/' /lib/systemd/system/i2p.service
+sudo systemctl daemon-reload
+sudo systemctl enable i2p.service
+#~ sudo yunohost service add -l /var/log/i2p.log i2p
+sudo yunohost service add i2p
+sudo systemctl start i2p@$SYNCUSER.service
+
+# Configure Nginx
+sed -i "s@PATHTOCHANGE@$path@g" ../conf/nginx.conf
+sed -i "s@PORTTOCHANGE@$GUIPORT@g" ../conf/nginx.conf
+sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/i2p.conf
+
+# Remove acces to all users
+sudo yunohost app removeaccess i2p
+sudo yunohost app addaccess i2p -u $user
+
+# Reload nginx and update ssowatch
+sudo systemctl reload nginx.service
+sudo yunohost app ssowatconf
+
+echo $?

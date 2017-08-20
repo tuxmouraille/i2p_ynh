@@ -1,0 +1,52 @@
+{
+  "name": "I2P",
+  "id": "i2p",
+  "packaging_format": 1,
+  "description": {
+    "fr": "I2P (Invisible Internet Project)"
+  },
+  "url": "https://geti2p.net/",
+  "license": "free",
+  "maintainer": {
+    "name": "txmrl",
+    "email": "txmrl@txmrl.net"
+  },
+  "requirements": {
+      "yunohost": ">= 2.4.0"
+  },
+  "multi_instance": false,
+  "services": [
+      "nginx"
+  ],
+  "arguments": {
+    "install": [
+      {
+        "name": "domain",
+        "type": "domain",
+        "ask": {
+          "en": "Choose a domain for I2P",
+          "fr": "Choisissir un domaine pour I2P"
+        },
+        "example": "domain.org"
+      },
+      {
+        "name": "path",
+        "type": "path",
+        "ask": {
+          "en": "Choose a path for I2P"
+        },
+        "example": "/i2p",
+        "default": "/i2p"
+      },
+      {
+        "name": "user",
+        "type": "user",
+        "ask": {
+            "en": "Choose the user for I2P (must be an existing yunohost user)",
+            "fr": "Choisissez l'utilisateur de I2P (doit être un utilisateur yunohost existant)"
+        },
+        "example": "johndoe"
+      }
+    ]
+  }
+}

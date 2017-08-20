@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Configurable variables
+SYNCHOME="/home/yunohost.app/i2p"
+I2PPORT1=8887
+I2PPORT2=123
+GUIPORT=7657
+
+# Stop and remove i2p service
+sudo systemctl stop i2p.service
+sudo yunohost service remove i2p
+sudo systemctl disable i2p.service
+
+# Remove i2p binairy
+sudo apt-get autoremove i2p i2p-keyring -y --purge
+sudo rm /etc/apt/sources.list.d/i2p.list
+sudo apt-get update -qq
+
+# Close port in firewall
+sudo yunohost firewall disallow Both $I2PPORT1
+sudo yunohost firewall disallow UDP $I2PPORT2
+
+# Remove i2p nginx configuration
+domain=$(sudo yunohost app setting i2p domain)
+sudo rm /etc/nginx/conf.d/$domain.d/i2p.conf
+
+# Reload nginx and update ssowatch
+sudo systemctl reload nginx.service
+sudo yunohost app ssowatconf
+
+echo $?

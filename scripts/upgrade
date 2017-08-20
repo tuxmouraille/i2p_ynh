@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Configurable variables
+SYNCHOME="/home/yunohost.app/i2p"
+I2PPORT1=8887
+I2PPORT2=123
+GUIPORT=7657
+
+# Retrieve arguments
+domain=$(sudo yunohost app setting i2p domain)
+path=$(sudo yunohost app setting i2p path)
+
+# Remove trailing "/" for next commands
+path=${path%/}
+
+# Upgrade official debian package
+sudo apt-get update -qq
+sudo apt-get upgrade i2p i2p-keyring -y
+
+# Update and reload Nginx
+sed -i "s@PATHTOCHANGE@$path@g" ../conf/nginx.conf
+sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/i2p.conf
+sudo service nginx reload
+
+
+# Update Nginx configuration
+sed -i "s@PATHTOCHANGE@$path@g" ../conf/nginx.conf
+sed -i "s@PORTTOCHANGE@$GUIPORT@g" ../conf/nginx.conf
+sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/i2p.conf
+
+
+# And reload
+sudo service nginx reload
+sudo yunohost app ssowatconf
+
+echo $?
